@@ -1,106 +1,140 @@
 # 🧭 Laravel Custom Installer
 
-A simple yet powerful **step-by-step installer** for Laravel applications.  
-It automatically handles `.env` setup, database configuration, migrations, and seeders — all through a clean browser interface.
+<div align="center">
+
+![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+
+**A powerful step-by-step installer for Laravel applications**
+
+*Streamline your deployment with automated environment setup, database configuration, and more.*
+
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Troubleshooting](#-troubleshooting)
+
+</div>
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
-- Environment setup from `.env.installer`
-- System requirements & permission checks
-- Interactive database configuration (with automatic DB creation)
-- Auto-run of migrations and seeders
-- Auto-generation of `APP_KEY`
-- Installer lock mechanism (`storage/installed`)
-- Middleware protection for installed and non-installed states
+<table>
+<tr>
+<td width="50%">
+
+### 🔧 **Smart Environment Setup**
+- Automatic `.env` generation from template
+- Environment validation and verification
+- Secure configuration management
+
+### 🗄️ **Database Management**
+- Interactive database configuration
+- Automatic database creation
+- One-click migrations & seeders
+
+</td>
+<td width="50%">
+
+### ✅ **System Validation**
+- PHP version & extension checks
+- Directory permission verification
+- Comprehensive requirement scanning
+
+### 🔒 **Security Features**
+- Installation lock mechanism
+- Middleware protection layers
+- Auto-generated APP_KEY
+
+</td>
+</tr>
+</table>
 
 ---
 
-## 📁 Directory Structure
+## 📂 Directory Structure
 
-The installer files should be placed exactly like this:
-
-root
-├── app
-│ └── Http
-│ └── Middleware
-│ └── CheckInstallation.php
+```
+laravel-project/
 │
-├── lib
-│ └── Installer
-│ ├── Controllers
-│ │ └── InstallerController.php
-│ ├── Middleware
-│ │ └── RedirectIfNotInstalled.php
-│ ├── Route
-│ │ └── install.php
-│ └── Views
-│ └── install
-│ ├── check.blade.php
-│ ├── database.blade.php
-│ ├── finish.blade.php
-│ └── welcome.blade.php
+├── 📁 app/
+│   └── 📁 Http/
+│       └── 📁 Middleware/
+│           └── 📄 CheckInstallation.php
 │
-├── .env.installer
-└── public
-└── index.php
-
-yaml
-Copy code
+├── 📁 lib/
+│   └── 📁 Installer/
+│       ├── 📁 Controllers/
+│       │   └── 📄 InstallerController.php
+│       │
+│       ├── 📁 Middleware/
+│       │   └── 📄 RedirectIfNotInstalled.php
+│       │
+│       ├── 📁 Routes/
+│       │   └── 📄 install.php
+│       │
+│       └── 📁 Views/
+│           └── 📁 install/
+│               ├── 📄 welcome.blade.php
+│               ├── 📄 check.blade.php
+│               ├── 📄 database.blade.php
+│               └── 📄 finish.blade.php
+│
+├── 📁 public/
+│   └── 📄 index.php (modified)
+│
+└── 📄 .env.installer (template file)
+```
 
 ---
 
-## ⚙️ Step-by-Step Installation
+## 🚀 Installation
 
-### 1️⃣ Copy Installer Files
+### Step 1: Copy Installer Files
 
-Copy the provided files and folders into your **Laravel project root** exactly as shown above.
+Copy all the provided files into your Laravel project according to the directory structure above.
 
----
+### Step 2: Register PSR-4 Namespace
 
-### 2️⃣ Register PSR-4 Namespace
-
-In your project’s `composer.json`, add the installer namespace under the `autoload.psr-4` section:
+Edit your `composer.json` and add the installer namespace:
 
 ```json
-"autoload": {
-    "psr-4": {
-        "App\\": "app/",
-        "Installer\\": "lib/Installer/"
+{
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Installer\\": "lib/Installer/"
+        }
     }
 }
+```
+
 Then run:
 
-bash
-Copy code
+```bash
 composer dump-autoload
-3️⃣ Register Installer Middlewares
-In your bootstrap/app.php, inside the withMiddleware() block, register the installer middleware aliases:
+```
 
-php
-Copy code
+### Step 3: Register Middleware
+
+In `bootstrap/app.php`, register the installer middleware aliases:
+
+```php
 ->withMiddleware(function (Middleware $middleware): void {
     $middleware->alias([
-        'permission' => App\Http\Middleware\PermissionMiddleware::class,
-        'require.location' => \App\Http\Middleware\RequireLocation::class,
-        'active.user' => \App\Http\Middleware\CheckActiveUser::class,
-        'verify.api.client' => \App\Http\Middleware\VerifyApiClient::class,
-
+        // Your existing middleware...
+        
         // 👇 Installer Middleware
         'check.installation' => \App\Http\Middleware\CheckInstallation::class,
         'redirect.if.not.installed' => Installer\Middleware\RedirectIfNotInstalled::class,
     ]);
-
-    $middleware->api(prepend: [
-        \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-    ]);
 })
-4️⃣ Modify public/index.php
-Replace your default public/index.php with this version:
+```
 
-php
-Copy code
+### Step 4: Modify `public/index.php`
+
+Replace your `public/index.php` with:
+
+```php
 <?php
 
 define('LARAVEL_START', microtime(true));
@@ -127,71 +161,226 @@ $response = $kernel->handle(
 $response->send();
 
 $kernel->terminate($request, $response);
-This ensures your app uses .env.installer when .env is missing — enabling first-time installation.
+```
 
-5️⃣ Load Installer Routes
-In your routes/web.php, include the installer routes:
+> **💡 Note:** This ensures your app uses `.env.installer` when `.env` is missing.
 
-php
-Copy code
-require base_path('lib/Installer/Route/install.php');
-🧩 Installer Flow
-Step	Description	View
-1. Welcome	Checks or creates .env from .env.installer	install/welcome.blade.php
-2. System Check	Verifies PHP version, extensions, and writable directories	install/check.blade.php
-3. Database Setup	Collects DB credentials, creates DB, runs migrations & seeders	install/database.blade.php
-4. Finish	Generates APP_KEY, updates environment, and locks installer	install/finish.blade.php
+### Step 5: Load Installer Routes
 
-🔐 Middleware Logic
-CheckInstallation.php
-Blocks /install/* routes after installation.
+In your `routes/web.php`, include the installer routes:
 
-Redirects to / if storage/installed exists.
+```php
+require base_path('lib/Installer/Routes/install.php');
+```
 
-RedirectIfNotInstalled.php
-Redirects all routes to installer if .env or storage/installed is missing.
+---
 
-Skips redirects for install/* and api/*.
+## 🎯 Usage
 
-🧾 Default .env.installer
-This file acts as the environment template for the first-time setup.
-It includes basic placeholders for database, mail, and app configuration.
-Make sure it exists at the project root (.env.installer).
+### Installation Flow
 
-⚡ After Installation
-Once the installer finishes:
+<table>
+<thead>
+<tr>
+<th width="10%">Step</th>
+<th width="30%">Screen</th>
+<th width="60%">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><strong>1️⃣</strong></td>
+<td><strong>Welcome</strong></td>
+<td>Checks or creates <code>.env</code> from <code>.env.installer</code> template</td>
+</tr>
+<tr>
+<td align="center"><strong>2️⃣</strong></td>
+<td><strong>System Check</strong></td>
+<td>Verifies PHP version, required extensions, and writable directories</td>
+</tr>
+<tr>
+<td align="center"><strong>3️⃣</strong></td>
+<td><strong>Database Setup</strong></td>
+<td>Collects credentials, creates database, runs migrations & seeders</td>
+</tr>
+<tr>
+<td align="center"><strong>4️⃣</strong></td>
+<td><strong>Finish</strong></td>
+<td>Generates <code>APP_KEY</code>, updates environment, and locks installer</td>
+</tr>
+</tbody>
+</table>
 
-.env is updated with database credentials and app settings.
+### Accessing the Installer
 
-APP_KEY is generated.
+1. **First Time:** Navigate to your application URL (e.g., `http://localhost/your-project`)
+2. **Auto-Redirect:** You'll be automatically redirected to `/install/welcome`
+3. **Follow Steps:** Complete each step in the installation wizard
 
-storage/installed file is created to lock the installer.
+---
 
-To re-run the installer, delete:
+## 🔐 Middleware Protection
 
-bash
-Copy code
-storage/installed
-.env
-Then reload your app in the browser.
+### `CheckInstallation.php`
+- ✅ Blocks access to `/install/*` routes after installation
+- ✅ Redirects to homepage if `storage/installed` exists
+- ✅ Prevents re-installation attempts
 
-🧰 Troubleshooting
-Error: “Connection failed: SQLSTATE[HY000] [1045]…”
-→ Verify your database credentials and ensure MySQL is running.
+### `RedirectIfNotInstalled.php`
+- ✅ Redirects all routes to installer if `.env` or `storage/installed` is missing
+- ✅ Allows access to `/install/*` and `/api/*` routes
+- ✅ Ensures installation before application use
 
-Installer redirects infinitely
-→ Check that both middlewares are correctly registered and your .env / storage/installed exist or not based on state.
+---
 
-White screen / blank page
-→ Run composer dump-autoload and clear caches:
+## 📋 Default Environment Template
 
-bash
-Copy code
+The `.env.installer` file serves as your environment template. Ensure it includes:
+
+```env
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=
+DB_USERNAME=
+DB_PASSWORD=
+
+# Add your other environment variables...
+```
+
+---
+
+## ✅ After Installation
+
+Once installation completes:
+
+- ✅ `.env` is created with your database credentials
+- ✅ `APP_KEY` is automatically generated
+- ✅ `storage/installed` lock file is created
+- ✅ Application is ready to use
+
+### Re-running the Installer
+
+To reinstall, delete these files:
+
+```bash
+rm storage/installed
+rm .env
+```
+
+Then refresh your browser.
+
+---
+
+## 🛠️ Troubleshooting
+
+<details>
+<summary><strong>❌ Database Connection Error</strong></summary>
+
+**Error:** `Connection failed: SQLSTATE[HY000] [1045]...`
+
+**Solution:**
+- Verify database credentials (username, password, host)
+- Ensure MySQL/MariaDB service is running
+- Check database user permissions
+
+</details>
+
+<details>
+<summary><strong>🔄 Infinite Redirect Loop</strong></summary>
+
+**Solution:**
+- Verify both middleware are correctly registered in `bootstrap/app.php`
+- Check if `.env` and `storage/installed` exist/don't exist based on current state
+- Clear application cache: `php artisan optimize:clear`
+
+</details>
+
+<details>
+<summary><strong>⚪ White Screen / Blank Page</strong></summary>
+
+**Solution:**
+```bash
+composer dump-autoload
 php artisan optimize:clear
-🧑‍💻 Credits
-Developed by [Shehrose] — A lightweight and reusable Laravel installer module.
-You’re free to modify, extend, or package it for your own Laravel applications.
+php artisan config:clear
+php artisan cache:clear
+```
 
-📜 License
-This installer is released under the MIT License.
-Feel free to use and adapt it in commercial or personal Laravel projects.
+Check Laravel logs in `storage/logs/laravel.log`
+
+</details>
+
+<details>
+<summary><strong>📝 Installer Routes Not Found</strong></summary>
+
+**Solution:**
+- Verify `require base_path('lib/Installer/Routes/install.php');` is in `routes/web.php`
+- Ensure folder name is `Routes` (capital R), not `Route`
+- Run `composer dump-autoload`
+
+</details>
+
+---
+
+## 🎨 Customization
+
+### Modifying Views
+
+All installer views are located in `lib/Installer/Views/install/`:
+
+- `welcome.blade.php` - Welcome screen
+- `check.blade.php` - System requirements check
+- `database.blade.php` - Database configuration
+- `finish.blade.php` - Installation complete
+
+Feel free to customize these views to match your application's branding.
+
+### Extending Functionality
+
+The `InstallerController.php` can be extended to add:
+- Custom validation rules
+- Additional setup steps
+- Email configuration
+- Queue setup
+- And more...
+
+---
+
+## 👨‍💻 Credits
+
+**Developed by Shehrose**
+
+A lightweight, reusable, and production-ready Laravel installer module designed to simplify deployment and setup processes.
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+
+```
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software...
+```
+
+---
+
+<div align="center">
+
+### ⭐ If you find this useful, please consider giving it a star!
+
+**Made with ❤️ for the Laravel Community**
+
+</div>

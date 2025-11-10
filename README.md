@@ -355,7 +355,7 @@ The `InstallerController.php` can be extended to add:
 
 ## 👨‍💻 Credits
 
-**Developed by Shehrose**
+**Developed by Muhammad Shehrose**
 
 A lightweight, reusable, and production-ready Laravel installer module designed to simplify deployment and setup processes.
 
